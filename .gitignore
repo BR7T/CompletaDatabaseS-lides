@@ -1,2 +1,4 @@
 .env
 .env_server
+**/__pycache__
+*.bat

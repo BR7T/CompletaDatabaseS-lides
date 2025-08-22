@@ -1,36 +1,59 @@
-from datetime import datetime
-import time
+from datetime import datetime , timedelta
 from functions.convertMsToDate import timeConvert
-from functions.connection import connection
-from functions.Solides.get import GetAllSolidesFunc , GetAllSolidesPontos
+from functions.database import InsertPonto , Jornada
+from functions.Solides.get import GetAllSolidesPontos , _GetAllEmployeesAndWorkPlace_
 
 
-DataPonto = GetAllSolidesPontos()
-DataFunc = GetAllSolidesFunc()
+def AtualizaBanco(obj):
+    nome = obj.get("employeeName")
+    horarioPonto = timeConvert(obj.get("dateIn"))
+    id_tangerino = obj.get("employeeId")
+    id_matricula = obj.get("employeeExternalId")
+    horarioSaida = obj.get("dateOut")
+    workplaceName = obj.get("workPlaceName")
+    if horarioSaida:
+        horarioSaida = timeConvert(horarioSaida)
+        InsertPonto(id_matricula , id_tangerino , nome , horarioSaida , "saida" , workplaceName)
+        Jornada(id_tangerino , horarioPonto , id_matricula , nome , workplaceName)
+        
+    InsertPonto(id_matricula , id_tangerino , nome , horarioPonto , "entrada" , workplaceName)
 
-for d in DataPonto:
-    d["nome"] = DataFunc.get(d["employeeId"] , "Desconhecido")
+page = 0
 
+diaconsulta = datetime.now().date() - timedelta(days=1)
+dt = datetime.combine(diaconsulta, datetime.min.time())
+form = int(dt.timestamp() * 1000)
 
-horaAtual = None
+dataEmployees , dataWorkPlace = _GetAllEmployeesAndWorkPlace_()
 
-def AtualizaBanco():
-    for d in DataPonto:
-        dataHoraformatadaStart = timeConvert(d["startDateTimestamp"])
-        dataHoraformatadaEnd = timeConvert(d["endDateTimestamp"])
+baseWorkPlace = {w.get("id"): w.get("name")  for w in dataWorkPlace.get("content")}
 
-        print(dataHoraformatadaStart)
-        print(dataHoraformatadaEnd)
-        print("tempo trabalhado " , dataHoraformatadaEnd - dataHoraformatadaStart)
-        print("\n")
+baseEmployees = {}
+for e in dataEmployees['content']:
+    w1 = e.get("workplaceList") or []
+    wpl = w1[0].get("id") if w1 else None
+    baseEmployees[e["id"]] = {
+        "workPlaceId" : wpl,
+        "workplaceName" : baseWorkPlace.get(wpl , "Desconhecido")
+    }
 
 while True:
-    horaAtual = datetime.now().time()
 
-    if horaAtual == horaAtual:
-        AtualizaBanco()
+    resp = GetAllSolidesPontos(page , form)
+    content = (resp or {}).get("content") or []
 
-    time.sleep(5)
+    if not content:
+        break
+
+    for obj in content:
+        baseCruza = baseEmployees.get(obj.get("employeeId"))
+        obj["workPlaceName"] = baseCruza.get("workplaceName")
+
+        if obj.get("allowance"):
+            continue
+        AtualizaBanco(obj)
+    
+    page += 1
 
 
 

@@ -2,24 +2,31 @@ import os
 import requests
 
 
-def GetAllSolidesPontos():
+def GetAllSolidesPontos(page , dia):
     headerAPIKey = {
         "Authorization":f"Basic {os.getenv("APIKEY_SOLIDES")}"
     }
-    url = "https://apis.tangerino.com.br/punch/summary?justClosed=true&size=200"
+    url = f"https://apis.tangerino.com.br/punch/?size=500&page={page}&startDate={dia}"
+
     resp = requests.get(url , headers=headerAPIKey)
     data = resp.json()
-    return data["content"]
+    return data
  
-def GetAllSolidesFunc():
+def _GetAllEmployeesAndWorkPlace_():
     headerAPIKey = {
         "Authorization":f"Basic {os.getenv("APIKEY_SOLIDES")}"
     }
-    # url = "https://employer.tangerino.com.br/employee/find-all?size=180"
-    url = "https://employer.tangerino.com.br/employee/find-all?size=143"
-    resp = requests.get(url , headers=headerAPIKey)
-    data = resp.json()
+    urlWorkPlace = "https://employer.tangerino.com.br/workplace/find-all?size=1000"
+    urlEmployees = "https://employer.tangerino.com.br/employee/find-all?size=1000"
+    respWork = requests.get(urlWorkPlace , headers=headerAPIKey)
+    respEmpl = requests.get(urlEmployees , headers=headerAPIKey)
+
+    dataEmpl = respEmpl.json()
+    dataWork = respWork.json()
+    return dataEmpl , dataWork
+
+   
     
-    
-    dic = {u["id"]:u["name"] for u in data["content"]}
-    return dic
+
+
+# https://employer.tangerino.com.br/workplace/find-all?pageSize=30
